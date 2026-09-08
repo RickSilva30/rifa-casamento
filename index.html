@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rifa para o Nosso Casamento!!</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase SDKs (v8) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <!-- Configurações do Firebase -->
+  <script src="firebase-config.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col justify-between">
+
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div>
+        <h1 class="text-xl md:text-2xl font-bold text-slate-900">Rifa para o nosso casamento!!</h1>
+        <p class="text-amber-600 font-semibold text-sm md:text-base mt-1">
+          <i class="fa-solid fa-trophy mr-1"></i> Concorra a <span class="underline">1 Convite Exclusivo + R$100</span>
+        </p>
+      </div>
+      <!-- Botão de Acesso Admin -->
+      <button id="adminBtn" onclick="toggleAdminModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-lg font-medium transition">
+        <i class="fa-solid fa-lock mr-1"></i> <span id="adminBtnText">Admin</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Conteúdo Principal -->
+  <main class="max-w-4xl mx-auto px-4 py-8 flex-grow w-full">
+    
+    <!-- Legenda de Status -->
+    <div class="flex flex-wrap items-center justify-center gap-4 mb-6 text-sm font-medium bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-white border-2 border-slate-300 inline-block"></span> Livre
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-amber-400 inline-block"></span> Reservado
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-emerald-500 inline-block"></span> Garantido
+      </div>
+    </div>
+
+    <!-- Barra de Status Admin -->
+    <div id="adminBar" class="hidden mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex justify-between items-center">
+      <span class="text-emerald-800 font-semibold text-sm">
+        <i class="fa-solid fa-user-shield mr-2"></i> Modo Administrador Ativo
+      </span>
+      <button onclick="logoutAdmin()" class="text-xs bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-md transition">
+        Sair
+      </button>
+    </div>
+
+    <!-- Grade de Números (1 a 100) -->
+    <div id="numbersGrid" class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2.5">
+      <!-- Renderizado via JS -->
+    </div>
+
+    <!-- Seção de Pagamento Pix -->
+    <section class="mt-12 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+      <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-qrcode text-emerald-600"></i> Pagamento via Pix
+      </h2>
+
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+        <div>
+          <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Chave Pix</p>
+          <p id="pixKey" class="text-slate-800 font-mono font-bold text-base md:text-lg break-all">62999119829</p>
+        </div>
+        <button onclick="copyPix()" class="w-full md:w-auto bg-slate-900 hover:bg-slate-800 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition flex items-center justify-center gap-2">
+          <i class="fa-regular fa-copy"></i> Copiar Chave Pix
+        </button>
+      </div>
+
+      <!-- Confirmação no WhatsApp -->
+      <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
+        <p class="text-emerald-900 text-sm font-medium text-center md:text-left">
+          Após efetivar o Pix, envie o comprovante para o WhatsApp: <strong>(62) 99911-9829</strong>
+        </p>
+        <a href="https://wa.me/5562999119829?text=Ol%C3%A1!%20Fiz%20o%20Pix%20da%20rifa%20do%20casamento%20e%20estou%20enviando%20o%20comprovante." 
+           target="_blank" 
+           class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition flex items-center justify-center gap-2 whitespace-nowrap shadow-sm">
+          <i class="fa-brands fa-whatsapp text-lg"></i> Enviar Comprovante
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal de Reserva -->
+  <div id="reserveModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100">
+      <h3 class="text-lg font-bold text-slate-900 mb-1">Reservar Número <span id="modalNumTitle" class="text-amber-500"></span></h3>
+      <p class="text-slate-500 text-xs mb-4">Preencha seus dados para solicitar a reserva.</p>
+      
+      <form id="reserveForm" onsubmit="handleReserveSubmit(event)">
+        <input type="hidden" id="selectedNumber">
+        <div class="mb-3">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Nome Completo</label>
+          <input type="text" id="buyerName" required placeholder="Digite seu nome" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none">
+        </div>
+        <div class="mb-5">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Telefone / WhatsApp</label>
+          <input type="tel" id="buyerPhone" required placeholder="(62) 99999-9999" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none">
+        </div>
+        <div class="flex gap-2">
+          <button type="button" onclick="closeReserveModal()" class="w-1/2 py-2.5 border border-slate-300 text-slate-600 rounded-lg font-medium text-sm hover:bg-slate-50">Cancelar</button>
+          <button type="submit" class="w-1/2 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold rounded-lg text-sm transition">Salvar Reserva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Admin -->
+  <div id="adminModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100">
+      
+      <!-- Login Admin -->
+      <div id="adminLoginForm">
+        <h3 class="text-lg font-bold text-slate-900 mb-4">Acesso Restrito Admin</h3>
+        <form onsubmit="handleAdminLogin(event)">
+          <div class="mb-3">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">E-mail</label>
+            <input type="email" id="adminEmail" required placeholder="fabiorick464@gmail.com" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+          </div>
+          <div class="mb-4">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Senha</label>
+            <input type="password" id="adminPassword" required placeholder="••••••••" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+          </div>
+          <div class="flex gap-2">
+            <button type="button" onclick="closeAdminModal()" class="w-1/2 py-2 border border-slate-300 text-slate-600 rounded-lg text-sm font-medium">Cancelar</button>
+            <button type="submit" class="w-1/2 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800">Entrar</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Gerenciamento do Número Selecionado -->
+      <div id="adminActionForm" class="hidden">
+        <h3 class="text-lg font-bold text-slate-900 mb-1">Gerenciar Número <span id="adminModalNumTitle"></span></h3>
+        <div id="buyerDetails" class="text-xs bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4 my-2"></div>
+        <div class="flex flex-col gap-2">
+          <button onclick="setNumberStatus('GARANTIDO')" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg text-sm transition">
+            Confirmar Pago (Garantido)
+          </button>
+          <button onclick="setNumberStatus('LIVRE')" class="w-full py-2 border border-rose-300 text-rose-600 hover:bg-rose-50 font-medium rounded-lg text-sm transition">
+            Liberar Número
+          </button>
+          <button type="button" onclick="closeAdminModal()" class="w-full py-2 border border-slate-300 text-slate-600 rounded-lg text-sm mt-1">
+            Fechar
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="text-center text-xs text-slate-400 py-6 border-t border-slate-200 mt-12">
+    Rifa para o Casamento • Todos os direitos reservados
+  </footer>
+
+  <!-- Lógica da Aplicação -->
+  <script>
+    let currentRaffleData = {};
+    let isAdminLoggedIn = false;
+    let selectedNumAdmin = null;
+
+    db.ref('rifa').on('value', (snapshot) => {
+      currentRaffleData = snapshot.val() || {};
+      renderGrid();
+    });
+
+    auth.onAuthStateChanged((user) => {
+      isAdminLoggedIn = !!user;
+      const adminBar = document.getElementById('adminBar');
+      const adminBtnText = document.getElementById('adminBtnText');
+
+      if (isAdminLoggedIn) {
+        adminBar.classList.remove('hidden');
+        adminBtnText.textContent = "Admin Ativo";
+      } else {
+        adminBar.classList.add('hidden');
+        adminBtnText.textContent = "Admin";
+      }
+      renderGrid();
+    });
+
+    function renderGrid() {
+      const grid = document.getElementById('numbersGrid');
+      grid.innerHTML = '';
+
+      for (let i = 1; i <= 100; i++) {
+        const item = currentRaffleData[i] || { status: 'LIVRE' };
+        const btn = document.createElement('button');
+        btn.setAttribute('type', 'button');
+        
+        let baseClass = "h-12 rounded-xl font-bold text-sm transition-all duration-150 flex items-center justify-center shadow-sm relative ";
+        
+        if (item.status === 'GARANTIDO') {
+          baseClass += "bg-emerald-500 text-white cursor-not-allowed border-2 border-emerald-600";
+        } else if (item.status === 'RESERVADO') {
+          baseClass += "bg-amber-400 text-slate-900 border-2 border-amber-500";
+        } else {
+          baseClass += "bg-white text-slate-700 hover:border-slate-900 border-2 border-slate-200 hover:shadow-md";
+        }
+
+        btn.className = baseClass;
+        btn.textContent = i < 10 ? `0${i}` : i;
+
+        btn.onclick = () => handleNumberClick(i, item);
+        grid.appendChild(btn);
+      }
+    }
+
+    function handleNumberClick(num, item) {
+      if (isAdminLoggedIn) {
+        selectedNumAdmin = num;
+        document.getElementById('adminModalNumTitle').textContent = `#${num}`;
+        document.getElementById('adminLoginForm').classList.add('hidden');
+        document.getElementById('adminActionForm').classList.remove('hidden');
+        
+        const details = document.getElementById('buyerDetails');
+        if (item.name) {
+          details.innerHTML = `<p><strong>Nome:</strong> ${item.name}</p><p><strong>WhatsApp:</strong> ${item.phone || 'Não informado'}</p><p><strong>Status:</strong> ${item.status}</p>`;
+        } else {
+          details.innerHTML = `<p class="text-slate-500">Número livre de reservas.</p>`;
+        }
+
+        document.getElementById('adminModal').classList.remove('hidden');
+        document.getElementById('adminModal').classList.add('flex');
+      } else {
+        if (item.status === 'GARANTIDO' || item.status === 'RESERVADO') {
+          alert('Este número já foi reservado ou garantido por outro participante.');
+          return;
+        }
+        openReserveModal(num);
+      }
+    }
+
+    function openReserveModal(num) {
+      document.getElementById('selectedNumber').value = num;
+      document.getElementById('modalNumTitle').textContent = `#${num}`;
+      document.getElementById('reserveModal').classList.remove('hidden');
+      document.getElementById('reserveModal').classList.add('flex');
+    }
+
+    function closeReserveModal() {
+      document.getElementById('reserveModal').classList.add('hidden');
+      document.getElementById('reserveModal').classList.remove('flex');
+      document.getElementById('reserveForm').reset();
+    }
+
+    function handleReserveSubmit(e) {
+      e.preventDefault();
+      const num = document.getElementById('selectedNumber').value;
+      const name = document.getElementById('buyerName').value;
+      const phone = document.getElementById('buyerPhone').value;
+
+      db.ref(`rifa/${num}`).set({
+        status: 'RESERVADO',
+        name: name,
+        phone: phone,
+        updatedAt: new Date().toISOString()
+      }, (error) => {
+        if (error) {
+          alert("Erro ao realizar reserva. Certifique-se de que o número ainda está disponível.");
+        } else {
+          closeReserveModal();
+        }
+      });
+    }
+
+    function toggleAdminModal() {
+      const modal = document.getElementById('adminModal');
+      if (modal.classList.contains('hidden')) {
+        if (!isAdminLoggedIn) {
+          document.getElementById('adminLoginForm').classList.remove('hidden');
+          document.getElementById('adminActionForm').classList.add('hidden');
+        }
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      } else {
+        closeAdminModal();
+      }
+    }
+
+    function closeAdminModal() {
+      const modal = document.getElementById('adminModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function handleAdminLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('adminEmail').value;
+      const password = document.getElementById('adminPassword').value;
+
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => {
+          closeAdminModal();
+        })
+        .catch(() => {
+          alert("E-mail ou senha incorretos.");
+        });
+    }
+
+    function logoutAdmin() {
+      auth.signOut();
+    }
+
+    function setNumberStatus(newStatus) {
+      if (!selectedNumAdmin) return;
+
+      if (newStatus === 'LIVRE') {
+        db.ref(`rifa/${selectedNumAdmin}`).remove()
+          .then(() => closeAdminModal());
+      } else {
+        db.ref(`rifa/${selectedNumAdmin}`).update({
+          status: newStatus
+        }).then(() => closeAdminModal());
+      }
+    }
+
+    function copyPix() {
+      const pixKey = document.getElementById('pixKey').textContent;
+      navigator.clipboard.writeText(pixKey).then(() => {
+        alert('Chave Pix copiada com sucesso!');
+      });
+    }
+  </script>
+</body>
+</html>
